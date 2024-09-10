@@ -1,120 +1,54 @@
-// Open or create an IndexedDB
-let db;
-const request = indexedDB.open('agricultureDB', 1);
+// temperature and humidity readings in celsius and % respectively
+let sensor = [[25.9, 42.3]]; // example readings temperature 23.5, humidity 45.2
 
-request.onupgradeneeded = function(event) {
-  db = event.target.result;
-  // Create an object store for agricultural data
-  const objectStore = db.createObjectStore('agriData', { keyPath: 'id', autoIncrement: true });
-  objectStore.createIndex('sensor', 'sensor', { unique: false });
-  objectStore.createIndex('note', 'note', { unique: false });
-  objectStore.createIndex('image', 'image', { unique: false });
-  objectStore.createIndex('gps', 'gps', { unique: false });
-  objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-};
+//Crop images: (Base64, encoded image string)
+let image = ["data:image/jpeg;base64,/9j/8BAFkZJRgABAQAAZABkAAD/..."] //example image
 
-request.onsuccess = function(event) {
-  db = event.target.result;
-  displayStoredData();
-};
+//String: Farmer notes and descriptions
+let note = "Checked the crop health, observed some pest issues.";
 
-request.onerror = function(event) {
-  console.error('Database error:', event.target.errorCode);
-};
+//Number: GPS coordinates(latitude, longitude)
+let gps = [[55.7128, 24.0060]];
+//Date: Timestamp of the data collection
+let timestamp = new Date(); //current date and time
 
-// Form submission handler
-document.getElementById('dataForm').addEventListener('submit', function(event) {
-  event.preventDefault();
+let openRequest = indexedDB.open("AgricultureDB", 2);
 
-  const sensor = document.getElementById('sensor').value;
-  const note = document.getElementById('note').value;
-  const imageInput = document.getElementById('image').files[0];
-  const gps = 37.7749; // Sample GPS coordinate
-  const timestamp = new Date().toISOString(); // Current date and time
+openRequest.onupgradeneeded = (event)  => {
+  let db = event.target.result;
 
-  if (!sensor) {
-    alert('Sensor reading is required.');
-    return;
-  }
+  let farmStore = db.createObjectStore("FarmData", {keypath: "id", autoIncrement: true});
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const imageData = e.target.result;
-    
-    const newEntry = { sensor, note, image: imageData, gps, timestamp };
-
-    const transaction = db.transaction(['agriData'], 'readwrite');
-    const objectStore = transaction.objectStore('agriData');
-    objectStore.add(newEntry);
-
-    transaction.oncomplete = function() {
-      displayStoredData();
-      document.getElementById('dataForm').reset();
-    };
-    
-    transaction.onerror = function(event) {
-      console.error('Transaction error:', event.target.errorCode);
-    };
-  };
-
-  if (imageInput) {
-    reader.readAsDataURL(imageInput);
-  } else {
-    reader.onload();
-  }
-});
-
-// Function to display stored data
-function displayStoredData() {
-  const transaction = db.transaction(['agriData'], 'readonly');
-  const objectStore = transaction.objectStore('agriData');
-  
-  const request = objectStore.getAll();
-  request.onsuccess = function(event) {
-    const dataList = document.getElementById('dataList');
-    dataList.innerHTML = '';
-
-    event.target.result.forEach(data => {
-      const listItem = document.createElement('li');
-      listItem.innerHTML = `
-        <strong>Sensor Reading:</strong> ${data.sensor}<br>
-        <strong>Note:</strong> ${data.note}<br>
-        ${data.image ? `<strong>Image:</strong><br><img src="${data.image}" width="100"><br>` : ''}
-        <strong>GPS Coordinates:</strong> ${data.gps}<br>
-        <strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}<br>
-      `;
-      dataList.appendChild(listItem);
-    });
-  };
 }
 
-// Function to retrieve and log stored data
-function logStoredData() {
-  const transaction = db.transaction(['agriData'], 'readonly');
-  const objectStore = transaction.objectStore('agriData');
+openRequest.onerror = function() {
+    console.error("Error", openRequest.error);
+  }
   
-  const request = objectStore.getAll();
-  request.onsuccess = function(event) {
-    const data = event.target.result;
+    openRequest.onsuccess = (event) => {
+    let db = event.target.result;
+    console.log("Success", db);
 
-    console.log('Retrieved Data:');
-    
-    data.forEach(entry => {
-      console.log('Sensor Reading:', JSON.parse(entry.sensor)); // Parse array from JSON
-      console.log('Note:', entry.note);
-      console.log('Image:', entry.image); // Base64 encoded string
-      console.log('GPS Coordinates:', entry.gps);
-      console.log('Timestamp:', new Date(entry.timestamp).toLocaleString()); // Convert to readable date
-    });
-  };
+    let transaction = db.transaction(["FarmData"], "readwrite");
 
-  request.onerror = function(event) {
-    console.error('Error retrieving data:', event.target.errorCode);
-  };
-}
+    let farmStore = transaction.objectStore("FarmData");
 
-// Call logStoredData after the database is successfully opened
-request.onsuccess = function(event) {
-  db = event.target.result;
-  logStoredData(); // Retrieve and log data
-};
+    farmStore.add({sensor, image, note, gps, timestamp}); //add data to the store
+
+    let getRequest = farmStore.get(1);
+
+     getRequest.onsuccess = (event) => {
+        let farmDataRequest = event.target.result;
+        console.log('Sensor :- ', farmDataRequest.sensor.map(reading => reading.join('\u2103, ') + '%') + [' type:- '] + typeof farmDataRequest.sensor[0][0]);
+        console.log('image:- ', farmDataRequest.image + [' type:- '] + typeof farmDataRequest.image[0]);
+        console.log('note:- ', farmDataRequest.note + [' type:- '] + typeof farmDataRequest.note);
+        console.log('GPS :- ', farmDataRequest.gps.map(coord => 'Latitude ' + coord.join(', Longitude ')) + [' type:- '] + typeof farmDataRequest.gps[0][0]);
+        console.log('Current Date and Time:- ', farmDataRequest.timestamp + [' type:- '] + (farmDataRequest.timestamp instanceof Date == true ? 'Date' : 'Not a Date'));
+    }
+
+    transaction.oncomplete = (event) => {
+        db.close();
+    };
+  }
+
+  module.exports = {sensor, image, note, gps, timestamp};
