@@ -1,0 +1,92 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+        <h1>
+            Agriculture
+        </h1>
+        <script>
+
+
+// Open a database connection named "AgricultureDB" with version 1
+let request = indexedDB.open("AgricultureDB", 1);
+
+request.onupgradeneeded = function(event) {
+    let db = event.target.result;
+    
+    // Create an object store within the database
+    let farmDataStore = db.createObjectStore("FarmData", { keyPath: "id", autoIncrement: true });
+    
+};
+
+request.onsuccess = function(event) {
+    let db = event.target.result;
+    
+    // Start a transaction for reading and writing data to the FarmData store
+    let transaction = db.transaction(["FarmData"], "readwrite");
+    
+    // Access theobject store within the transaction
+    let farmDataStore = transaction.objectStore("FarmData");
+    
+    // Add a synthetic farm data object
+    farmDataStore.add({
+        sensorReadings: [1134.5, 93.6], // Temp: 1134.5 °C , Humidity: 93.6% (farm is in an active volcano)
+        cropPhoto: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACXljzdAAAABGdBTUEAALGPC/xhBQAAAANQTFRF/wAAGeIJNwAAABxJREFUGBntwYEAAAAAw6D7U0/hANUAAAAAAE4BFFAAAdoeEWgAAAAASUVORK5CYII=",
+        farmerNote: "Evacuate!!",
+        gpsCoordinates: [-1.5167, 29.25], // latitude, longitude
+        timestamp: new Date() // current date, time
+
+    });
+    
+    // Retrieve
+    let getRequest = farmDataStore.get(1);
+    
+    getRequest.onsuccess = function(event) {
+        let farm = event.target.result;
+        
+        // Update the book's title in the "Books" store
+        farm.farmerNote = "Tried one of our corn cobs tho ... smoky, very yummy";
+        farmDataStore.put(farm);
+    };
+    
+    
+    // Close the database connection after all operations are done
+    transaction.oncomplete = function() {
+        db.close();
+    };
+
+    console.log("Data successfully retrieved");
+
+
+    
+    // select first document
+    let farmGetRequest = farmDataStore.get(1);
+    
+
+    // perform unit tests
+    farmGetRequest.onsuccess = function(event) {
+
+        let farm = event.target.result;
+
+        console.assert(JSON.stringify(farm.sensorReadings) === JSON.stringify([1134.5, 93.6]));
+        console.assert(farm.cropPhoto == 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACXljzdAAAABGdBTUEAALGPC/xhBQAAAANQTFRF/wAAGeIJNwAAABxJREFUGBntwYEAAAAAw6D7U0/hANUAAAAAAE4BFFAAAdoeEWgAAAAASUVORK5CYII=');
+        console.assert(farm.farmerNote == "Tried one of our corn cobs tho ... smoky, very yummy");
+        console.assert(JSON.stringify(farm.gpsCoordinates) === JSON.stringify([-1.5167, 29.25]));
+        console.assert(!isNaN(farm.timestamp));
+     };
+    
+};
+
+// Handle errors that might occur during any of the database operations
+request.onerror = function(event) {
+    console.error("Database error:", event.target.errorCode);
+};
+
+
+
+
+
+       </script>
+    </body>
+</html>
