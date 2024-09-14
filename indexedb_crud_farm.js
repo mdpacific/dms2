@@ -1,5 +1,7 @@
+console.log("Script is loaded and running.");
+
 // Name of the database
-const dbName = "WeatherDB";
+const dbName = "FarmDB";
 
 // Create or open the database
 function openDatabase(callback) {
@@ -7,7 +9,7 @@ function openDatabase(callback) {
 
     request.onupgradeneeded = function(event) {
         const db = event.target.result;
-        db.createObjectStore("WeatherData", { keyPath: "id", autoIncrement: true });
+        db.createObjectStore("FarmData", { keyPath: "id", autoIncrement: true });
         console.log("Database upgraded or created.");
     };
 
@@ -24,8 +26,8 @@ function openDatabase(callback) {
 
 // Create data
 function createData(db, data, callback) {
-    const transaction = db.transaction(["WeatherData"], "readwrite");
-    const store = transaction.objectStore("WeatherData");
+    const transaction = db.transaction(["FarmData"], "readwrite");
+    const store = transaction.objectStore("FarmData");
     const request = store.add(data);
 
     request.onsuccess = function(event) {
@@ -41,8 +43,8 @@ function createData(db, data, callback) {
 
 // Read data
 function readData(db, id, callback) {
-    const transaction = db.transaction(["WeatherData"], "readonly");
-    const store = transaction.objectStore("WeatherData");
+    const transaction = db.transaction(["FarmData"], "readonly");
+    const store = transaction.objectStore("FarmData");
     const request = store.get(id);
 
     request.onsuccess = function(event) {
@@ -56,22 +58,33 @@ function readData(db, id, callback) {
     };
 }
 
+const sensorReadings = [20, 42.2];
+const cropPhoto = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA";
+const farmerNote = "Crops look healthy.";
+const gpsCoordinates = 40.7128;
+const timestamp = new Date();
+
 // Example usage
 openDatabase(function(error, db) {
     if (error) {
         console.error("Failed to open database:", error);
         return;
     }
+    // Unit tests
+    console.assert(typeof gpsCoordinates === "number", "invalid GPS coordinates");
+    console.assert(Array.isArray(sensorReadings), "invalid sensor readings");
+    console.assert(typeof cropPhoto === "string", "invalid photo");
+    console.assert(typeof farmerNote === "string", "invalid farmer note");
+    console.assert(timestamp instanceof Date, "invalid timestamp");
+
 
     // Create various types of data
     createData(db, {
-        temperature: 22,
-        condition: "Sunny",
-        isRaining: false,
-        windSpeed: 5.0,
-        timestamp: new Date().toISOString(),
-        tags: ["weather", "sunny", "summer"], // Array
-        image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA" // Example base64 image data
+        sensorReadings: sensorReadings,
+        cropPhoto: cropPhoto,
+        farmerNote: farmerNote,
+        gpsCoordinates: gpsCoordinates,
+        timestamp: timestamp
     }, function(error, id) {
         if (error) {
             console.error("Failed to create data:", error);
@@ -94,6 +107,12 @@ openDatabase(function(error, db) {
                     document.body.appendChild(img); // Add image to the body for visualization
                     console.log("Image data:", data.image);
                 }
+
+                // Display the rest of the data in the console
+                console.log("Sensor Readings:", data.sensorReadings);
+                console.log("Farmer Notes:", data.farmerNote);
+                console.log("GPS Coordinates:", data.gpsCoordinates);
+                console.log("Timestamp:", data.timestamp)
             }
         });
     });
