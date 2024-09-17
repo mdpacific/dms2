@@ -1,18 +1,3 @@
-// Array: Sensor readings (temperature, humidity)
-let sensorReadings = [30, 45];
-
-// Image: Photo (Base64 encoded image string)
-let cropPhoto = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/krHCrkAAAAASUVORK5CYII=";
-
-// String: Note
-let farmerNote = "Not too hot";
-
-// Numbers: GPS
-let gpsCoordinates = 36.3123;
-
-// Data collection date
-let timestamp = new Date();
-
 //Setup IndexedDB
 let request = indexedDB.open("AgricultureDB", 1);
 request.onupgradeneeded = function(event) {
@@ -26,10 +11,25 @@ request.onsuccess = function(event) {
     let transaction = db.transaction(["FarmData"], "readwrite");
     let store = transaction.objectStore("FarmData");
 
+    // Array: Sensor readings (temperature, humidity)
+    let sensorReadings = [30, 45];
+
+    // Image: Photo (Base64 encoded image string)
+    let cropPhoto = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/krHCrkAAAAASUVORK5CYII=";
+
+    // String: Note
+    let farmerNote = "Not too hot";
+
+    // Numbers: GPS
+    let gpsCoordinates = 36.3123;
+
+    // Data collection date
+    let timestamp = new Date();
+
     let farmData = {
         "uuid": crypto.randomUUID(),
         "sensorReadings": sensorReadings,
-        "cropPhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/krHCrkAAAAASUVORK5CYII=",
+        "cropPhoto": cropPhoto,
         "farmerNote": farmerNote,
         "gpsCoordinates": gpsCoordinates,
         "timestamp": timestamp
