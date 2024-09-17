@@ -1,84 +1,97 @@
-// Open a database connection named "LibraryDB" with version 1
-let request = indexedDB.open("LibraryDB", 1);
+// Configuration for IndexedDB
+const DB_NAME = "AgricultureDB";
+const OBJECT_STORE_NAME = "FarmData";
 
-request.onupgradeneeded = function(event) {
-    let db = event.target.result;
-    
-    // Create an object store named "Books" within the database
-    let booksStore = db.createObjectStore("Books", { keyPath: "id", autoIncrement: true });
-    
-    // Create another object store named "Novels" within the database
-    let novelsStore = db.createObjectStore("Novels", { keyPath: "id", autoIncrement: true });
-};
+// Function to open IndexedDB
+function openDB(callback) {
+    const request = indexedDB.open(DB_NAME, 1);
 
-request.onsuccess = function(event) {
-    let db = event.target.result;
-    
-    // Start a transaction for reading and writing data to the "Books" store
-    let transaction = db.transaction(["Books"], "readwrite");
-    
-    // Access the "Books" object store within the transaction
-    let booksStore = transaction.objectStore("Books");
-    
-    // Add a new book with the title "Learn JavaScript" and author "Jane Smith"
-    booksStore.add({ title: "Learn JavaScript", author: "Jane Smith" });
-    
-    // Retrieve a book with a specific ID from the "Books" store
-    let getRequest = booksStore.get(1);
-    
-    getRequest.onsuccess = function(event) {
-        // Log the retrieved book's author to the console
-        let book = event.target.result;
-        console.log("Author:", book.author);
-        
-        // Update the book's title in the "Books" store
-        book.title = "Mastering JavaScript";
-        booksStore.put(book);
-    };
-    
-    // Delete a book with ID 2 from the "Books" store
-    booksStore.delete(2);
-    
-    // Clear all data in the "Books" store
-    booksStore.clear();
-    
-    // Close the database connection after all operations are done
-    transaction.oncomplete = function() {
-        db.close();
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        const store = db.createObjectStore(OBJECT_STORE_NAME, { keyPath: "id", autoIncrement: true });
+        store.createIndex("sensorReadings", "sensorReadings", { unique: false });
+        store.createIndex("cropPhoto", "cropPhoto", { unique: false });
+        store.createIndex("farmerNote", "farmerNote", { unique: false });
+        store.createIndex("gpsCoordinates", "gpsCoordinates", { unique: false });
+        store.createIndex("timestamp", "timestamp", { unique: false });
+        console.log("Object store and indexes created.");
     };
 
-    // Handle operations in the "Novels" store
-    let novelsTransaction = db.transaction(["Novels"], "readwrite");
-    let novelsStore = novelsTransaction.objectStore("Novels");
-    
-    // Add a new book with the title "Web Development" and author "Alice Brown"
-    novelsStore.add({ title: "Web Development", author: "Alice Brown" });
-    
-    // Retrieve a book by its ID from the "Novels" store
-    let novelGetRequest = novelsStore.get(1);
-    
-    novelGetRequest.onsuccess = function(event) {
-        // Log the retrieved book's title and author to the console
-        let novel = event.target.result;
-        console.log("Title:", novel.title, "Author:", novel.author);
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        console.log("Database opened successfully.");
+        callback(db);  // Proceed with DB operations
     };
-    
-    // Delete a book with a specific ID from the "Novels" store
-    novelsStore.delete(1);
-    
-    novelsTransaction.oncomplete = function() {
-        db.close();
+
+    request.onerror = function(event) {
+        console.error("Error opening database:", event.target.error);
     };
-};
+}
 
-// Handle errors that might occur during any of the database operations
-request.onerror = function(event) {
-    console.error("Database error:", event.target.errorCode);
-};
+// Function to add data to IndexedDB
+function addData(db) {
+    const transaction = db.transaction([OBJECT_STORE_NAME], "readwrite");
+    const store = transaction.objectStore(OBJECT_STORE_NAME);
 
-// Delete the entire "LibraryDB" database (this would usually be done in a separate context)
-let deleteRequest = indexedDB.deleteDatabase("LibraryDB");
+    const data = {
+        sensorReadings: [[23.5, 42.5]],
+        cropPhoto: "data:image/jpeg;base64,/4AAQSkZJRgABAQEAAAAAAAD/...",
+        farmerNote: "Pests have been spotted. Spray insecticide.",
+        gpsCoordinates: [[-49.96556, -100.39831]],
+        timestamp: new Date()
+    };
 
-deleteRequest.onsuccess = function(event) {
-    console.log("LibraryDB deleted successfully");
+    const request = store.add(data);
+
+    request.onsuccess = function() {
+        console.log("Data added to IndexedDB.");
+        fetchData(db);  // Fetch data after successful addition
+    };
+
+    request.onerror = function(event) {
+        console.error("Error adding data:", event.target.error);
+    };
+}
+
+// Function to fetch data from IndexedDB
+function fetchData(db) {
+    const transaction = db.transaction([OBJECT_STORE_NAME], "readonly");
+    const store = transaction.objectStore(OBJECT_STORE_NAME);
+
+    const request = store.getAll();
+
+    request.onsuccess = function(event) {
+        const records = event.target.result;
+        console.log("Fetched records from IndexedDB:");
+        records.forEach(record => {
+            console.log("ID:", record.id);
+            console.log("Sensor Readings:", record.sensorReadings);
+            console.log("Crop Photo:", record.cropPhoto);
+            console.log("Farmer Note:", record.farmerNote);
+            console.log("GPS Coordinates:", record.gpsCoordinates);
+            console.log("Timestamp:", record.timestamp);
+
+            // Optionally, display the image
+            const img = new Image();
+            img.src = record.cropPhoto;
+            document.body.appendChild(img);
+        });
+    };
+
+    request.onerror = function(event) {
+        console.error("Error fetching data:", event.target.error);
+    };
+}
+
+// Initialize the database operations
+openDB(function(db) {
+    addData(db);  // Start with adding data
+});
+
+module.exports = {
+    sensorReadings,
+    cropImages,
+    farmerNote,
+    gpsCoordinates,
+    timeStamp
 };
