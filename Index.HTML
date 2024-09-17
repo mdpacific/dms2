@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agricultural Data Storage with IndexedDB</title>
+</head>
+<body>
+    <h1>Agricultural Data Storage with IndexedDB</h1>
+    <button onclick="addData()">Add Sample Data</button>
+    <button onclick="displayData()">Display Stored Data</button>
+    <div id="dataDisplay"></div>
+
+    <script>
+        // Name of the database
+        const dbName = "AgricultureDB";
+
+        // Open or create the database
+        function openDatabase(callback) {
+            const request = indexedDB.open(dbName, 1);
+
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                // Create object store with auto-incrementing primary key
+                const objectStore = db.createObjectStore("FarmData", { keyPath: "id", autoIncrement: true });
+
+                // Define the indexes for the object store
+                objectStore.createIndex("sensorReadings", "sensorReadings", { unique: false });
+                objectStore.createIndex("cropPhoto", "cropPhoto", { unique: false });
+                objectStore.createIndex("farmerNote", "farmerNote", { unique: false });
+                objectStore.createIndex("gpsCoordinates", "gpsCoordinates", { unique: false });
+                objectStore.createIndex("timestamp", "timestamp", { unique: false });
+
+                console.log("Database setup complete.");
+            };
+
+            request.onsuccess = function(event) {
+                console.log("Database opened successfully.");
+                callback(null, event.target.result); // Pass the database to the callback
+            };
+
+            request.onerror = function(event) {
+                console.error("Error opening database:", event.target.error);
+                callback(event.target.error); // Pass the error to the callback
+            };
+        }
+
+        // Create data
+        function createData(db, data, callback) {
+            const transaction = db.transaction(["FarmData"], "readwrite");
+            const store = transaction.objectStore("FarmData");
+            const request = store.add(data);
+
+            request.onsuccess = function(event) {
+                console.log("Data added successfully with ID:", event.target.result);
+                callback(null, event.target.result); // Pass the ID of the added record to the callback
+            };
+
+            request.onerror = function(event) {
+                console.error("Error adding data:", event.target.error);
+                callback(event.target.error); // Pass the error to the callback
+            };
+        }
+
+        // Read all data
+        function readAllData(db, callback) {
+            const transaction = db.transaction(["FarmData"], "readonly");
+            const store = transaction.objectStore("FarmData");
+            const request = store.getAll();
+
+            request.onsuccess = function(event) {
+                console.log("Data retrieved successfully.");
+                callback(null, event.target.result); // Pass the retrieved data to the callback
+            };
+
+            request.onerror = function(event) {
+                console.error("Error retrieving data:", event.target.error);
+                callback(event.target.error); // Pass the error to the callback
+            };
+        }
+
+        // Function to add sample agricultural data to the IndexedDB
+        function addData() {
+            openDatabase(function(error, db) {
+                if (error) {
+                    console.error("Failed to open database:", error);
+                    return;
+                }
+
+                // Sample agricultural data
+                const sampleData = {
+                    sensorReadings: [23.5, 45.2], // Temperature (°C) and Humidity (%)
+                    cropPhoto: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...", // Example Base64 encoded image
+                    farmerNote: "Checked the crop health, observed some pest issues.",
+                    gpsCoordinates: 37.7749, // Latitude (example)
+                    timestamp: new Date().toISOString() // ISO string format
+                };
+
+                createData(db, sampleData, function(error, id) {
+                    if (error) {
+                        console.error("Failed to create data:", error);
+                        return;
+                    }
+
+                    console.log("Data created with ID:", id);
+                });
+            });
+        }
+
+        // Function to display the stored data in IndexedDB and log it to the console
+        function displayData() {
+            openDatabase(function(error, db) {
+                if (error) {
+                    console.error("Failed to open database:", error);
+                    return;
+                }
+
+                readAllData(db, function(error, data) {
+                    if (error) {
+                        console.error("Failed to retrieve data:", error);
+                        return;
+                    }
+
+                    const displayDiv = document.getElementById("dataDisplay");
+                    displayDiv.innerHTML = "";
+
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            // Log data to the console
+                            console.log("--------------------------------------------------");
+                            console.log("Data ID:", item.id);
+                            console.log("Sensor Readings (Array):", item.sensorReadings);
+                            console.log("Crop Photo (Base64 Image):", item.cropPhoto);
+                            console.log("Farmer Note (String):", item.farmerNote);
+                            console.log("GPS Coordinates (Number):", item.gpsCoordinates);
+                            console.log("Timestamp (Date):", new Date(item.timestamp).toLocaleString());
+
+                            // Display data in the browser
+                            displayDiv.innerHTML += `<h3>Data ID: ${item.id}</h3>`;
+                            displayDiv.innerHTML += `<p><strong>Sensor Readings:</strong> ${item.sensorReadings.join(', ')}</p>`;
+                            displayDiv.innerHTML += `<p><strong>Crop Photo:</strong><br><img src="${item.cropPhoto}" alt="Crop Photo" width="200"/></p>`;
+                            displayDiv.innerHTML += `<p><strong>Farmer Note:</strong> ${item.farmerNote}</p>`;
+                            displayDiv.innerHTML += `<p><strong>GPS Coordinates:</strong> ${item.gpsCoordinates}</p>`;
+                            displayDiv.innerHTML += `<p><strong>Timestamp:</strong> ${new Date(item.timestamp).toLocaleString()}</p>`;
+                            displayDiv.innerHTML += "<hr>";
+                        });
+                    } else {
+                        displayDiv.innerHTML = "<p>No data found.</p>";
+                        console.log("No data found.");
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
