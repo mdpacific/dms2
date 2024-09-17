@@ -44,6 +44,7 @@ request.onsuccess = function(event) {
         getRequest.onsuccess = function(event) {
             let data = event.target.result;
             console.log("Data added successfully.");
+            console.log("Retrived Data:")
             console.log("Sensor readings: ", data.sensorReadings);
             console.log("Crop photo: ", data.cropPhoto);
             console.log("Farmer Note: ", data.farmerNote);
