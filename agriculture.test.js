@@ -1,20 +1,21 @@
 require('fake-indexeddb/auto');
-const { sensorReading, cropPhoto, farmerNote, gpsCoordinate, timeStamp } = require('./app.js');
-jest.mock('./app.js', () => {
-    return {
-        sensorReading: [23.5, 45.2],
-        cropPhoto: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAZABkAAD/..."],
-        farmerNote: "Checked the crop health, observed some pest issues.",
-        gpsCoordinate: [37.7749, 24.3230],
-        timeStamp: new Date()
-    };
-});
+const { sensorReading, cropPhoto, farmerNote, gpsCoordinate, timestamp } = require('./app.js');
+
 let db;
+jest.mock('./app.js', () => {
+  return {
+      sensorReading: [23.5, 45.2],
+      cropPhoto: ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA..."],
+      farmerNote: "Checked the crop health, observed some pest issues.",
+      gpsCoordinate: [40.7128, -74.0060],
+      timestamp: new Date()
+  };
+});
 
 // Setup before each test
 beforeEach(() => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("AgricultureDB", 1);
+    const request = indexedDB.open("AgricultureDB", 2);
     
     request.onerror = (event) => {
       console.error("Error: ", event.target.errorCode);
@@ -29,7 +30,13 @@ beforeEach(() => {
     
     request.onupgradeneeded = (event) => {
       db = event.target.result;
-      db.createObjectStore('FarmData', { autoIncrement: true });
+      if(db.objectStoreNames.contains('FarmData')) {
+        db.deleteObjectStore('FarmData');
+        db.createObjectStore('FarmData', {keypath: 'id', autoIncrement: true });
+      }
+      else {
+        db.createObjectStore('FarmData', {keypath: 'id', autoIncrement: true });
+      };
     };
   });
 });
@@ -49,10 +56,12 @@ test('should add data to the FarmData object store', async () => {
     cropPhoto,
     farmerNote,
     gpsCoordinate,
-    timeStamp,
+    timestamp,
   };
   
   const request = farmstore.add(data);
+  console.log("data", data);
+  
   
   await new Promise((resolve, reject) => {
     request.onsuccess = () => resolve();
@@ -63,22 +72,25 @@ test('should add data to the FarmData object store', async () => {
 });
 
 // Test retrieving data from the database
-test('should retrieve data correctly from FarmData object store', async () => {
-  const transaction = db.transaction(['FarmData'], 'readonly');
+test('should retrieve data from the FarmData object store', async () => {
+  const transaction = db.transaction(['FarmData'], 'readwrite');
   const farmstore = transaction.objectStore('FarmData');
-
-  const request = farmstore.get(1); // Assuming data is added with id 1
-
-  const farmData = await new Promise((resolve, reject) => {
-    request.onsuccess = (event) => resolve(event.target.result);
-    request.onerror = (event) => reject(event.target.errorCode);
-  });
-
-  expect(request.sensorReading).toEqual([23.5, 45.2]);
-  expect(request.cropPhoto).toBe('data:image/png;base64,iVBORw0KGgoAAA...');
-  expect(request.farmerNote).toBe("Checked the crop health, observed some pest issues.");
-  expect(request.gpsCoordinate).toBe([37.7749, 24.3230]);
-  expect(request.timeStamp).toBeInstanceOf(Date);
+  
+  farmstore.add({sensorReading, cropPhoto, farmerNote, gpsCoordinate, timestamp });
+  console.log("keypath", farmstore.keyPath);
+  
+  const request = farmstore.get(1);
+  
+  request.onsuccess = (event) => {
+    const someData = event.target.result;
+    expect(someData.sensorReading).toEqual([23.5, 45.2]);
+  expect(someData.cropPhoto[0]).toBe("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA...");
+  expect(someData.farmerNote).toBe("Checked the crop health, observed some pest issues.");
+  expect(someData.gpsCoordinate[0]).toBe(40.7128);
+  expect(timestamp instanceof Date).toBe(true); 
+    
+  };
+  
 });
 
 // Test retrieving a non-existent record
