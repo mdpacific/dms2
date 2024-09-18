@@ -1,84 +1,101 @@
-// Open a database connection named "LibraryDB" with version 1
-let request = indexedDB.open("LibraryDB", 1);
+const DB_NAME = "AgriDataDB";
+const STORE_NAME = "FieldRecords";
 
-request.onupgradeneeded = function(event) {
-    let db = event.target.result;
-    
-    // Create an object store named "Books" within the database
-    let booksStore = db.createObjectStore("Books", { keyPath: "id", autoIncrement: true });
-    
-    // Create another object store named "Novels" within the database
-    let novelsStore = db.createObjectStore("Novels", { keyPath: "id", autoIncrement: true });
-};
+// Function to open IndexedDB
+function initializeDatabase(onSuccessCallback) {
+    const dbRequest = indexedDB.open(DB_NAME, 1);
 
-request.onsuccess = function(event) {
-    let db = event.target.result;
-    
-    // Start a transaction for reading and writing data to the "Books" store
-    let transaction = db.transaction(["Books"], "readwrite");
-    
-    // Access the "Books" object store within the transaction
-    let booksStore = transaction.objectStore("Books");
-    
-    // Add a new book with the title "Learn JavaScript" and author "Jane Smith"
-    booksStore.add({ title: "Learn JavaScript", author: "Jane Smith" });
-    
-    // Retrieve a book with a specific ID from the "Books" store
-    let getRequest = booksStore.get(1);
-    
-    getRequest.onsuccess = function(event) {
-        // Log the retrieved book's author to the console
-        let book = event.target.result;
-        console.log("Author:", book.author);
+    dbRequest.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: "recordId", autoIncrement: true });
+
+        // Defining indexes
+        objectStore.createIndex("sensorReadings", "sensorReadings", { unique: false });
+        objectStore.createIndex("cropImages", "cropImages", { unique: false });
+        objectStore.createIndex("farmerNote", "farmerNote", { unique: false });
+        objectStore.createIndex("gpsCoordinates", "gpsCoordinates", { unique: false });
+        objectStore.createIndex("timeStamp", "timeStamp", { unique: false });
         
-        // Update the book's title in the "Books" store
-        book.title = "Mastering JavaScript";
-        booksStore.put(book);
-    };
-    
-    // Delete a book with ID 2 from the "Books" store
-    booksStore.delete(2);
-    
-    // Clear all data in the "Books" store
-    booksStore.clear();
-    
-    // Close the database connection after all operations are done
-    transaction.oncomplete = function() {
-        db.close();
+        console.log("Database schema created successfully.");
     };
 
-    // Handle operations in the "Novels" store
-    let novelsTransaction = db.transaction(["Novels"], "readwrite");
-    let novelsStore = novelsTransaction.objectStore("Novels");
-    
-    // Add a new book with the title "Web Development" and author "Alice Brown"
-    novelsStore.add({ title: "Web Development", author: "Alice Brown" });
-    
-    // Retrieve a book by its ID from the "Novels" store
-    let novelGetRequest = novelsStore.get(1);
-    
-    novelGetRequest.onsuccess = function(event) {
-        // Log the retrieved book's title and author to the console
-        let novel = event.target.result;
-        console.log("Title:", novel.title, "Author:", novel.author);
+    dbRequest.onsuccess = (event) => {
+        const db = event.target.result;
+        console.log("Database connection established.");
+        onSuccessCallback(db);  // Proceed with database operations
     };
-    
-    // Delete a book with a specific ID from the "Novels" store
-    novelsStore.delete(1);
-    
-    novelsTransaction.oncomplete = function() {
-        db.close();
+
+    dbRequest.onerror = (event) => {
+        console.error("Error opening database:", event.target.error);
     };
-};
+}
 
-// Handle errors that might occur during any of the database operations
-request.onerror = function(event) {
-    console.error("Database error:", event.target.errorCode);
-};
+// Function to add a record to IndexedDB
+function addRecord(db) {
+    const transaction = db.transaction([STORE_NAME], "readwrite");
+    const objectStore = transaction.objectStore(STORE_NAME);
 
-// Delete the entire "LibraryDB" database (this would usually be done in a separate context)
-let deleteRequest = indexedDB.deleteDatabase("LibraryDB");
+    const newRecord = {
+        sensorReadings: [[21.8, 43.6]],  // Example data for sensor readings
+        cropImages: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA.../", // Example image data
+        farmerNote: "Noticed a slight decrease in soil moisture, irrigation needed.",
+        gpsCoordinates: [[-45.987, 120.456]],  // Example GPS coordinates
+        timeStamp: new Date()  // Current timestamp
+    };
 
-deleteRequest.onsuccess = function(event) {
-    console.log("LibraryDB deleted successfully");
+    const addRequest = objectStore.add(newRecord);
+
+    addRequest.onsuccess = () => {
+        console.log("Record added to the database.");
+        retrieveAllRecords(db);  // Fetch data after addition
+    };
+
+    addRequest.onerror = (event) => {
+        console.error("Error adding record:", event.target.error);
+    };
+}
+
+// Function to retrieve all records from IndexedDB
+function retrieveAllRecords(db) {
+    const transaction = db.transaction([STORE_NAME], "readonly");
+    const objectStore = transaction.objectStore(STORE_NAME);
+
+    const fetchRequest = objectStore.getAll();
+
+    fetchRequest.onsuccess = (event) => {
+        const records = event.target.result;
+        console.log("Records fetched from IndexedDB:", records);
+
+        records.forEach(record => {
+            console.log(`ID: ${record.recordId}`);
+            console.log(`Sensor Readings: ${record.sensorReadings}`);
+            console.log(`Crop Images: ${record.cropImages}`);
+            console.log(`Farmer Note: ${record.farmerNote}`);
+            console.log(`GPS Coordinates: ${record.gpsCoordinates}`);
+            console.log(`Timestamp: ${record.timeStamp}`);
+
+            // Optionally display the image on the page
+            const imgElement = new Image();
+            imgElement.src = record.cropImages;
+            document.body.appendChild(imgElement);
+        });
+    };
+
+    fetchRequest.onerror = (event) => {
+        console.error("Error fetching records:", event.target.error);
+    };
+}
+
+// Initialize the database and add a record
+initializeDatabase((db) => {
+    addRecord(db);  // Add data once the database is initialized
+});
+
+// Export for use in other modules
+module.exports = {
+    sensorReadings,
+    cropImages,
+    farmerNote,
+    gpsCoordinates,
+    timeStamp
 };
