@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agricultural Data Collection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        input, button {
+            margin: 5px 0;
+            padding: 8px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #display div {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        img {
+            max-width: 200px;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Agricultural Data Collection</h1>
+
+    <!-- Input for sensor readings -->
+    <label for="sensorReading">Sensor Reading:</label>
+    <input type="number" id="sensorReading" placeholder="Enter sensor reading" required>
+    <br>
+
+    <!-- Input for notes -->
+    <label for="notes">Notes:</label>
+    <input type="text" id="notes" placeholder="Enter your notes" required>
+    <br>
+
+    <!-- Input for GPS coordinates -->
+    <label for="gpsCoordinates">GPS Coordinates:</label>
+    <input type="text" id="gpsCoordinates" placeholder="Enter GPS coordinates" required>
+    <br>
+
+    <!-- Input for image -->
+    <label for="imageUpload">Upload Image:</label>
+    <input type="file" id="imageUpload" accept="image/*" required>
+    <br><br>
+
+    <button id="addDataButton">Add Data</button>
+    <button id="displayDataButton">Display Stored Data</button>
+
+    <h2>Stored Data:</h2>
+    <div id="display"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
