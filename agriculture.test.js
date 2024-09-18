@@ -2,10 +2,10 @@ require('fake-indexeddb/auto');
 const { sensorReading, cropPhoto, farmerNote, gpsCoordinate, timeStamp } = require('./app.js');
 jest.mock('./app.js', () => {
     return {
-        sensorReading: [[23.5, 45.2]],
+        sensorReading: [23.5, 45.2],
         cropPhoto: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAZABkAAD/..."],
         farmerNote: "Checked the crop health, observed some pest issues.",
-        gpsCoordinate: [[40.7128, -74.0060]],
+        gpsCoordinate: [37.7749, 24.3230],
         timeStamp: new Date()
     };
 });
