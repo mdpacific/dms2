@@ -1,0 +1,2 @@
+To run: 
+npx jest
