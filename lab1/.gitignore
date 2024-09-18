@@ -1,0 +1,12 @@
+# Node modules
+node_modules/
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Optional: other common files to ignore
+.DS_Store
+.env
+dist/
+build/
