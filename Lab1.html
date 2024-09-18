@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agricultural Data Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form, #dataDisplay {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="number"], input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        img {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
+        }
+        #dataDisplay div {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        #dataDisplay div:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Agricultural Data Management</h1>
+    
+    <form id="agriculturalDataForm">
+        <label for="temperature">Temperature (°C):</label>
+        <input type="number" id="temperature" step="0.1" required>
+        
+        <label for="humidity">Humidity (%):</label>
+        <input type="number" id="humidity" step="0.1" required>
+        
+        <label for="farmerNote">Farmer Note:</label>
+        <textarea id="farmerNote" rows="3" required></textarea>
+        
+        <label for="cropPhoto">Crop Photo:</label>
+        <input type="file" id="cropPhoto" accept="image/*">
+        
+        <button type="submit">Save Agricultural Data</button>
+    </form>
+
+    <h2>Stored Agricultural Data</h2>
+    <div id="dataDisplay"></div>
+
+    <script src="indexedb_crud_weather.js"></script>
+    <script>
+        let db;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            openDatabase(function(error, database) {
+                if (error) {
+                    console.error("Failed to open database:", error);
+                } else {
+                    db = database;
+                    displayAllData();
+                }
+            });
+        });
+
+        document.getElementById('agriculturalDataForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            addAgriculturalData();
+        });
+
+        function addAgriculturalData() {
+            const agriculturalData = {
+                sensorReadings: [
+                    parseFloat(document.getElementById('temperature').value),
+                    parseFloat(document.getElementById('humidity').value)
+                ],
+                farmerNote: document.getElementById('farmerNote').value,
+                gpsCoordinates: [Math.random() * 180 - 90, Math.random() * 360 - 180], // Random coordinates for demonstration
+                timestamp: new Date().toISOString(),
+                cropPhoto: null
+            };
+
+            const photoFile = document.getElementById('cropPhoto').files[0];
+            if (photoFile) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    agriculturalData.cropPhoto = event.target.result;
+                    saveData(agriculturalData);
+                };
+                reader.readAsDataURL(photoFile);
+            } else {
+                saveData(agriculturalData);
+            }
+        }
+
+        function saveData(data) {
+            createData(db, data, function(error, id) {
+                if (error) {
+                    console.error("Failed to add agricultural data:", error);
+                } else {
+                    console.log("Agricultural data added with ID:", id);
+                    displayAllData();
+                }
+            });
+        }
+
+        function displayAllData() {
+            const transaction = db.transaction(["WeatherData"], "readonly");
+            const store = transaction.objectStore("WeatherData");
+            const request = store.getAll();
+
+            request.onsuccess = function(event) {
+                const data = event.target.result;
+                const dataDisplay = document.getElementById('dataDisplay');
+                dataDisplay.innerHTML = '';
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <p><strong>Temperature:</strong> ${item.sensorReadings[0]}°C</p>
+                        <p><strong>Humidity:</strong> ${item.sensorReadings[1]}%</p>
+                        <p><strong>Farmer Note:</strong> ${item.farmerNote}</p>
+                        <p><strong>GPS Coordinates:</strong> ${item.gpsCoordinates.join(', ')}</p>
+                        <p><strong>Timestamp:</strong> ${item.timestamp}</p>
+                        ${item.cropPhoto ? `<img src="${item.cropPhoto}" alt="Crop Photo">` : ''}
+                    `;
+                    dataDisplay.appendChild(div);
+                });
+            };
+
+            request.onerror = function(event) {
+                console.error("Error retrieving data:", event.target.error);
+            };
+        }
+    </script>
+</body>
+</html>
