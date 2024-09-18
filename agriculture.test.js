@@ -63,31 +63,23 @@ test('should add data to the FarmData object store', async () => {
 });
 
 // Test retrieving data from the database
-test('Should retrieve data correctly from FarmData store', (done) => {
-    let db = event.target.result;
-    console.log("Database opened successfully");
+test('should retrieve data correctly from FarmData object store', async () => {
+  const transaction = db.transaction(['FarmData'], 'readonly');
+  const farmstore = transaction.objectStore('FarmData');
 
-    const transaction = db.transaction(["FarmData"], "readwrite");
-    const farmstore = transaction.objectStore("FarmData");
+  const request = farmstore.get(1); // Assuming data is added with id 1
 
-    farmstore.add({sensorReading, cropPhoto, farmerNote, gpsCoordinate, timestamp });
+  const farmData = await new Promise((resolve, reject) => {
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject(event.target.errorCode);
+  });
 
-    const getRequest = farmstore.get(1); 
-
-    getRequest.onsuccess = (event) => {
-        let result = event.target.result;
-        expect(result.sensorReadings).toEqual([23.5, 45.2]);
-        expect(result.cropPhoto).toBe('data:image/png;base64,iVBORw0KGgoAAA...');
-        expect(result.farmerNote).toBe("Checked the crop health, observed some pest issues.");
-        expect(result.gpsCoordinates).toBe([37.7749, 24.3230]);
-        expect(result.timestamp).toBeInstanceOf(Date);  // Ensure the timestamp exists
-        done();
-    };
-
-    request.onerror = function() {
-        done.fail("Failed to retrieve data from the store");
-    };
-}, 10000);
+  expect(request.sensorReading).toEqual([23.5, 45.2]);
+  expect(request.cropPhoto).toBe('data:image/png;base64,iVBORw0KGgoAAA...');
+  expect(request.farmerNote).toBe("Checked the crop health, observed some pest issues.");
+  expect(request.gpsCoordinate).toBe([37.7749, 24.3230]);
+  expect(request.timeStamp).toBeInstanceOf(Date);
+});
 
 // Test retrieving a non-existent record
 test('should handle retrieving a non-existent record', async () => {
