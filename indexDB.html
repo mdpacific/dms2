@@ -1,0 +1,125 @@
+<html>
+
+<head>
+ <title></title>
+</head>
+
+<body>
+
+
+<script>
+    // Name of the database
+    const databaseName = "AgricultureDB";
+    let temperatureHumidityArray =  [23.5, 45.2] // Temperature: 23.5°C, Humidity: 45.2%
+
+    // Image: Crop photos (Base64 encoded image string)
+    let cropPhotoPathString = "file:///Users/cover-crops.png" // Replace with actual Base64 string
+
+            // String: Farmer notes and descriptions
+    let farmerNoteString = "Checked the crop health, observed some pest issues."
+
+            // Number: GPS coordinates (Latitude example)
+    let gpsCoordinatesValue = 37.7749
+
+            // Date: Timestamp of data collection
+    let timestamp = new Date() // Current date and time
+
+    // Create or open the database
+    function openDatabase(callback) {
+        const request = indexedDB.open(databaseName, 1);
+
+        request.onupgradeneeded = function (event) {
+            const database = event.target.result;
+            database.createObjectStore("FarmData", { keyPath: "id", autoIncrement: true });
+            console.log("Database " + databaseName + " created.");
+        };
+
+        request.onsuccess = function (event) {
+            console.log("Database " + databaseName + " opened successfully.");
+            callback(null, event.target.result); // Pass the database to the callback
+        };
+
+        request.onerror = function (event) {
+            console.error("Error opening database: "+ databaseName, event.target.error);
+            callback(event.target.error); // Pass the error to the callback
+        };
+    }
+
+    // Create data
+    function createData(db, data, callback) {
+        const transaction = db.transaction(["FarmData"], "readwrite");
+        const store = transaction.objectStore("FarmData");
+        const request = store.add(data);
+
+        request.onsuccess = function (event) {
+            console.log("Data added successfully.");
+            callback(null, event.target.result); // Pass the ID of the added record to the callback
+        };
+
+        request.onerror = function (event) {
+            console.error("Error adding data:", event.target.error);
+            callback(event.target.error); // Pass the error to the callback
+        };
+    }
+
+    // Read data
+    function readData(db, id, callback) {
+        const readOnlyTransaction = db.transaction(["FarmData"], "readonly");
+        const farmDataStore = readOnlyTransaction.objectStore("FarmData");
+        const request = farmDataStore.get(id);
+
+        request.onsuccess = function (event) {
+            console.log("Data retrieved successfully.");
+            
+            callback(null, event.target.result); // Pass the retrieved data to the callback
+        };
+
+        request.onerror = function (event) {
+            console.error("Error reading data:", event.target.error);
+            callback(event.target.error); // Pass the error to the callback
+        };
+    }
+
+    openDatabase(function (error, db) {
+        if (error) {
+            console.error("Failed to open database:", error);
+            return;
+        }
+
+        // Create various types of data
+        createData(db, {
+            temperatureHumidityArray,
+            cropPhotoPathString,
+            farmerNoteString,
+            gpsCoordinatesValue,
+            timestamp
+        }, function (error, id) {
+            if (error) {
+                console.error("Failed to create farmdata:", error);
+                return;
+            }
+
+            console.log("FarmData is created with ID:", id);
+
+            // Retrieve the data
+            readData(db, id, function (error, data) {
+                if (error) {
+                    console.error("Failed to read data:", error);
+                } else {
+                    console.log("read data:", data);
+
+                    // Display the image in the console (for debugging)
+                    if (data.cropPhotoPathString) {
+                        const image = new Image();
+                        image.src = data.cropPhotoPathString;
+                        document.body.appendChild(image); // Add image to the body for visualization
+                        console.log("Image:", data.cropPhotoPathString);
+                    }
+                }
+            });
+        });
+    });
+</script>
+</body>
+
+</html>
